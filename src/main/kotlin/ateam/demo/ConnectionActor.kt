@@ -28,9 +28,11 @@ class ConnectionActor(private val host: String, private val port: Int): Abstract
                     if ( it.utf8String().startsWith(ClientType.pub.toString())) {
                         map[connection.remoteAddress().port] = map[connection.remoteAddress().port]!!.copy(clientType = ClientType.pub)
                         log.info("WE HAVE THE ____PUBLISHER____")
-                    } else {
+                    } else if ( it.utf8String().startsWith(ClientType.sub.toString())) {
                         map[connection.remoteAddress().port] = map[connection.remoteAddress().port]!!.copy(clientType = ClientType.sub)
                         log.info("WE HAVE THE ____SUBSCRIBER____")
+                    } else {
+                        map.values.firstOrNull { it.clientType == ClientType.sub }?.queue?.offer(it)
                     }
                 }
 
