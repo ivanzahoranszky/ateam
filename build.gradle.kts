@@ -10,7 +10,7 @@ repositories {
 }
 
 dependencies {
-    testImplementation(kotlin("test"))
+    implementation("com.typesafe.akka:akka-stream_2.13:2.8.5")
 }
 
 tasks.test {
