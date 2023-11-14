@@ -6,6 +6,7 @@ import akka.stream.OverflowStrategy
 import akka.stream.javadsl.*
 import akka.stream.javadsl.Tcp.IncomingConnection
 import akka.util.ByteString
+import java.time.Instant
 import java.util.concurrent.CompletionStage
 
 class ConnectionActor(
@@ -32,7 +33,7 @@ class ConnectionActor(
                 val source = createSource(connection)
                 val handlerFlow = Flow.fromSinkAndSource(sink, source)
                 connection.handleWith(handlerFlow, context.system)
-                log.info("Tcp connection has been established from ${connection.remoteAddress().hostName}")
+                log.info("Tcp connection has been established from ${connection.remoteAddress()}")
             }).run(context.system)
     }
 
@@ -65,24 +66,24 @@ class ConnectionActor(
 
     private fun registerPublisher(remotePort: Int) {
         portMapping[remotePort] = portMapping[remotePort]?.copy(clientType = ClientType.PUB) ?: throw RuntimeException("Connection not found")
+        portMapping[remotePort]?.queue?.offer(ByteString.fromString("Hello publisher\n"))
         log.info("Publisher connected from $remotePort")
     }
 
     private fun registerSubscriber(remotePort: Int) {
         portMapping[remotePort] = portMapping[remotePort]?.copy(clientType = ClientType.SUB) ?: throw RuntimeException("Connection not found")
+        portMapping[remotePort]?.queue?.offer(ByteString.fromString("Hello subscriber\n"))
         log.info("Subscriber connected from $remotePort")
     }
 
     private fun sendMessage(remotePort: Int, data: ByteString) {
-        val myType = portMapping[remotePort]?.clientType ?: throw RuntimeException("Connection not found")
-        if (myType == ClientType.SUB) { return }
+        val myClientType = portMapping[remotePort]?.clientType ?: throw RuntimeException("Connection not found")
+        if (myClientType == ClientType.SUB) { return }
 
-        val myPort = portMapping[remotePort]?.connection?.remoteAddress()?.port ?: throw RuntimeException("Connection not found")
         portMapping
             .filter { it.value.clientType == ClientType.SUB }
-            .filter { it.value.connection.remoteAddress().port != myPort }
             .map { it.value }
-            .forEach { record -> record.queue.offer(data) }
+            .forEach { record -> record.queue.offer(data.toJson()) }
     }
 
     private val runningState = receiveBuilder()
