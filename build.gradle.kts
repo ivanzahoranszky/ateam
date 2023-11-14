@@ -10,8 +10,15 @@ repositories {
 }
 
 dependencies {
-    implementation("com.typesafe.akka:akka-stream_2.13:2.8.5")
+    val akkaVersion = "2.8.5"
+
+    implementation("com.typesafe.akka:akka-stream_2.13:$akkaVersion")
     implementation("com.google.code.gson:gson:2.8.8")
+
+    testImplementation("com.typesafe.akka:akka-testkit_2.13:$akkaVersion")
+    testImplementation(platform("io.cucumber:cucumber-bom:7.14.0"))
+    testImplementation("io.cucumber:cucumber-java")
+    testImplementation("io.cucumber:cucumber-junit")
 }
 
 tasks.test {

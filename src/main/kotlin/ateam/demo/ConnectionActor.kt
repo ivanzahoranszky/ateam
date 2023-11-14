@@ -2,19 +2,23 @@ package ateam.demo
 
 import akka.Done
 import akka.actor.AbstractActorWithStash
+import akka.actor.Props
 import akka.stream.OverflowStrategy
 import akka.stream.javadsl.*
 import akka.stream.javadsl.Tcp.IncomingConnection
 import akka.util.ByteString
-import java.time.Instant
+import scala.PartialFunction
 import java.util.concurrent.CompletionStage
 
 class ConnectionActor(
     private val host: String,
     private val port: Int): AbstractActorWithStash() {
 
-    private companion object {
-        const val QUEUE_SIZE = 100
+    companion object {
+
+        private const val QUEUE_SIZE = 100
+        fun props(host: String, port: Int): Props = Props.create(ConnectionActor::class.java, host, port)
+
     }
 
     private val log = context.system.log()
@@ -52,7 +56,7 @@ class ConnectionActor(
             when {
                 data.utf8String().uppercase().startsWith(ClientType.PUB.toString()) -> registerPublisher(remotePort)
                 data.utf8String().uppercase().startsWith(ClientType.SUB.toString()) -> registerSubscriber(remotePort)
-                else -> sendMessage(remotePort, data)
+                else -> sendMessageToSubscribers(remotePort, data)
             }
         }
         return sink
@@ -76,7 +80,7 @@ class ConnectionActor(
         log.info("Subscriber connected from $remotePort")
     }
 
-    private fun sendMessage(remotePort: Int, data: ByteString) {
+    private fun sendMessageToSubscribers(remotePort: Int, data: ByteString) {
         val myClientType = portMapping[remotePort]?.clientType ?: throw RuntimeException("Connection not found")
         if (myClientType == ClientType.SUB) { return }
 
