@@ -11,6 +11,7 @@ repositories {
 
 dependencies {
     implementation("com.typesafe.akka:akka-stream_2.13:2.8.5")
+    implementation("com.google.code.gson:gson:2.8.8")
 }
 
 tasks.test {
