@@ -23,15 +23,15 @@ class StepDefinitions {
     @Given("the driver has been started")
     fun `the driver has been started`() {
         actorSystem.actorOf(ConnectionActor.props("localhost", 8888))
-        Thread.sleep(1000)
-        val s = Socket()
-        s.connect(InetSocketAddress("localhost", 8888))
     }
 
     @When("the publisher connects and gets \"(.+)\"$")
-    fun `the publisher connects`(result: String) {
+    fun `the publisher connects and gets`(result: String) {
+        Thread.sleep(1000)
         publisher = Socket()
         connect(publisher!!, "pub", result)
+
+//        connect(publisher!!, "pub", result)
     }
 
     @When("the subscriber connects and gets \"(.+)\"$")
