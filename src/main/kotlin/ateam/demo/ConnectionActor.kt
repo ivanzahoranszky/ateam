@@ -3,11 +3,7 @@ package ateam.demo
 import akka.Done
 import akka.actor.AbstractActorWithStash
 import akka.stream.OverflowStrategy
-import akka.stream.javadsl.Flow
-import akka.stream.javadsl.Sink
-import akka.stream.javadsl.Source
-import akka.stream.javadsl.SourceQueueWithComplete
-import akka.stream.javadsl.Tcp
+import akka.stream.javadsl.*
 import akka.util.ByteString
 import java.util.concurrent.CompletionStage
 
@@ -24,15 +20,15 @@ class ConnectionActor(private val host: String, private val port: Int): Abstract
 
         Tcp.get(context.system).bind(host, port)
             .to(Sink.foreach { connection ->
-                val sink: Sink<ByteString, CompletionStage<Done>> = Sink.foreach {
-                    if ( it.utf8String().startsWith(ClientType.pub.toString())) {
+                val sink: Sink<ByteString, CompletionStage<Done>> = Sink.foreach { data ->
+                    if ( data.utf8String().startsWith(ClientType.pub.toString())) {
                         map[connection.remoteAddress().port] = map[connection.remoteAddress().port]!!.copy(clientType = ClientType.pub)
                         log.info("WE HAVE THE ____PUBLISHER____")
-                    } else if ( it.utf8String().startsWith(ClientType.sub.toString())) {
+                    } else if ( data.utf8String().startsWith(ClientType.sub.toString())) {
                         map[connection.remoteAddress().port] = map[connection.remoteAddress().port]!!.copy(clientType = ClientType.sub)
                         log.info("WE HAVE THE ____SUBSCRIBER____")
                     } else {
-                        map.values.firstOrNull { it.clientType == ClientType.sub }?.queue?.offer(it)
+                        map.values.firstOrNull { it.clientType == ClientType.sub }?.queue?.offer(data)
                     }
                 }
 
@@ -58,6 +54,6 @@ class ConnectionActor(private val host: String, private val port: Int): Abstract
         sub
     }
 
-    data class ConnectionRec(val port: Int, var clientType: ClientType?, val queue: SourceQueueWithComplete<ByteString>)
+    data class ConnectionRec(val port: Int, var clientType: ClientType?, val queue: SourceQueue<ByteString>)
 
 }
