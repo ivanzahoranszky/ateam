@@ -27,42 +27,49 @@ class StepDefinitions {
 
     @When("the publisher connects and gets \"(.+)\"$")
     fun `the publisher connects and gets`(result: String) {
-        Thread.sleep(1000)
-        publisher = Socket()
-        connect(publisher!!, "pub", result)
-
-//        connect(publisher!!, "pub", result)
+        connect("pub", result)
     }
 
     @When("the subscriber connects and gets \"(.+)\"$")
-    fun `the subscriber connects`(result: String) {
-        subsciber = Socket()
-        connect(subsciber!!, "pub", result)
+    fun `the subscriber connects and gets`(result: String) {
+        connect("sub", result)
     }
 
     @And("the publisher sends \"(.+)\"$")
-    fun `the publisher sends `(message: String) {
-//        publisher = Socket()
-//        publisher!!.connect(InetSocketAddress("localhost", 8888))
+    fun `the publisher sends`(message: String) {
+        publisher!!.getOutputStream().write(message.toByteArray())
+        publisher!!.getOutputStream().flush()
     }
 
-    private fun connect(socket: Socket, clientType: String, result: String) {
+    @And("the subscriber gets \"(.+)\"$")
+    fun `the subscriber gets`(message: String) {
+        publisher!!.getOutputStream().write(message.toByteArray())
+        publisher!!.getOutputStream().flush()
+    }
+
+    private fun connect(clientType: String, result: String) {
         CompletableFuture.supplyAsync {
             var line: String? = null
+            var socket: Socket? = null
             while (null == line) {
                 runCatching {
-                    socket.connect(InetSocketAddress("localhost", 8888))
-                    socket.getOutputStream().write("$clientType\n".toByteArray())
-                    socket.getOutputStream().flush()
-                    line = BufferedReader(InputStreamReader(publisher!!.getInputStream())).readLine()
+                    socket = Socket()
+                    socket!!.connect(InetSocketAddress("localhost", 8888))
+                    socket!!.getOutputStream().write("$clientType\n".toByteArray())
+                    socket!!.getOutputStream().flush()
+                    line = BufferedReader(InputStreamReader(socket!!.getInputStream())).readLine()
                 }
                 Thread.sleep(100)
             }
+            when (clientType) {
+                "sub" -> subsciber = socket
+                "pub" -> publisher = socket
+            }
             line
         }
-            .thenAccept{
-                assertEquals(result, it)
-            }.join()
+        .thenAccept{
+            assertEquals(result, it)
+        }.join()
     }
 
 
