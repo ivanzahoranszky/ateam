@@ -7,7 +7,7 @@ import akka.stream.OverflowStrategy
 import akka.stream.javadsl.*
 import akka.stream.javadsl.Tcp.IncomingConnection
 import akka.util.ByteString
-import scala.PartialFunction
+import java.time.Instant
 import java.util.concurrent.CompletionStage
 
 class ConnectionActor(
@@ -37,7 +37,6 @@ class ConnectionActor(
                 val source = createSource(connection)
                 val handlerFlow = Flow.fromSinkAndSource(sink, source)
                 connection.handleWith(handlerFlow, context.system)
-                log.info("Tcp connection has been established from ${connection.remoteAddress()}")
             }).run(context.system)
     }
 
@@ -54,8 +53,8 @@ class ConnectionActor(
     private fun createSink(remotePort: Int): Sink<ByteString, CompletionStage<Done>> {
         val sink: Sink<ByteString, CompletionStage<Done>> = Sink.foreach { data ->
             when {
-                data.utf8String().uppercase().startsWith(ClientType.PUB.toString()) -> registerPublisher(remotePort)
-                data.utf8String().uppercase().startsWith(ClientType.SUB.toString()) -> registerSubscriber(remotePort)
+                data.utf8String().uppercase().startsWith(ClientType.PUBLISHER.toString()) -> registerPublisher(remotePort)
+                data.utf8String().uppercase().startsWith(ClientType.SUBSCRIBER.toString()) -> registerSubscriber(remotePort)
                 else -> sendMessageToSubscribers(remotePort, data)
             }
         }
@@ -69,33 +68,38 @@ class ConnectionActor(
     }
 
     private fun registerPublisher(remotePort: Int) {
-        portMapping[remotePort] = portMapping[remotePort]?.copy(clientType = ClientType.PUB) ?: throw RuntimeException("Connection not found")
-        portMapping[remotePort]?.queue?.offer(ByteString.fromString("Hello publisher\n"))
-        log.info("Publisher connected from $remotePort")
+        portMapping[remotePort] = portMapping[remotePort]?.copy(clientType = ClientType.PUBLISHER) ?: throw RuntimeException("Connection not found")
+        portMapping[remotePort]?.queue?.offer(ByteString.fromString("Hello PUBLISHER\n"))
+        log.info("Publisher connected from $remotePort, Hello PUBLISHER sent")
     }
 
     private fun registerSubscriber(remotePort: Int) {
-        portMapping[remotePort] = portMapping[remotePort]?.copy(clientType = ClientType.SUB) ?: throw RuntimeException("Connection not found")
-        portMapping[remotePort]?.queue?.offer(ByteString.fromString("Hello subscriber\n"))
-        log.info("Subscriber connected from $remotePort")
+        portMapping[remotePort] = portMapping[remotePort]?.copy(clientType = ClientType.SUBSCRIBER) ?: throw RuntimeException("Connection not found")
+        portMapping[remotePort]?.queue?.offer(ByteString.fromString("Hello SUBSCRIBER\n"))
+        log.info("Subscriber connected from $remotePort, Hello SUBSCRIBER sent")
     }
 
     private fun sendMessageToSubscribers(remotePort: Int, data: ByteString) {
         val myClientType = portMapping[remotePort]?.clientType ?: throw RuntimeException("Connection not found")
-        if (myClientType == ClientType.SUB) { return }
+        if (myClientType == ClientType.SUBSCRIBER) { return }
 
         portMapping
-            .filter { it.value.clientType == ClientType.SUB }
+            .map { log.info("${it.value.clientType}: ${it.value.connection.remoteAddress()}"); it }
+            .filter { it.value.clientType == ClientType.SUBSCRIBER }
             .map { it.value }
-            .forEach { record -> record.queue.offer(data.toJson()) }
+            .forEach { record ->
+                val message = Message(data.utf8String().trimEnd(), Instant.now().toEpochMilli()).toJson() + "\n"
+                record.queue.offer(ByteString.fromString(message))
+                log.info("Message sent to ${record.connection.remoteAddress()} $message")
+            }
     }
 
     private val runningState = receiveBuilder()
         .build()
 
     private enum class ClientType {
-        PUB,
-        SUB
+        PUBLISHER,
+        SUBSCRIBER
     }
 
     private data class ConnectionRec(val connection: IncomingConnection, var clientType: ClientType?, val queue: SourceQueueWithComplete<ByteString>)
