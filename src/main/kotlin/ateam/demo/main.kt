@@ -15,4 +15,6 @@ fun main() {
         system.settings().config().getInt("demo.port")
     ))
 
+    DbService(system)
+
 }

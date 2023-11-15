@@ -87,6 +87,8 @@ class StepDefinitions {
     @And("^end$")
     fun end() {
         flow.join()
+        publisher.close()
+        subscriber.close()
     }
 
     private fun connect(clientType: String): CompletableFuture<Unit> {

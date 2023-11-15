@@ -10,9 +10,7 @@ import akka.util.ByteString
 import java.time.Instant
 import java.util.concurrent.CompletionStage
 
-class ConnectionActor(
-    private val host: String,
-    private val port: Int): AbstractActorWithStash() {
+class ConnectionActor(private val host: String, private val port: Int): AbstractActorWithStash() {
 
     companion object {
 
