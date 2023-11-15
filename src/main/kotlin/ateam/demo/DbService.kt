@@ -11,6 +11,7 @@ class DbService(private val actorSystem: ActorSystem) {
         println()
         Slick.source(session, "SELECT * FROM messages") {
             it.nextObject()
+            Message(it.nextString(), it.nextLong())
         }.to(Sink.foreach {
             println(it)
         }).run(actorSystem)
