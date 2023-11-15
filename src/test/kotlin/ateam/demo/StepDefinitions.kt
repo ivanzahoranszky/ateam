@@ -4,6 +4,7 @@ import akka.actor.ActorSystem
 import io.cucumber.core.logging.LoggerFactory
 import io.cucumber.java.en.And
 import io.cucumber.java.en.Given
+import io.cucumber.java.en.Then
 import io.cucumber.java.en.When
 import org.junit.Assert.*
 import java.io.BufferedReader
@@ -35,7 +36,7 @@ class StepDefinitions {
         }
     }
 
-    @When("^the subscriber connects$")
+    @And("^the subscriber connects$")
     fun `the subscriber connects`() {
         flow = flow.thenCompose {
             connect("SUBSCRIBER")
@@ -74,7 +75,7 @@ class StepDefinitions {
         }
     }
 
-    @And("^the subscriber receives \"(.+)\" in JSON format$")
+    @Then("^the subscriber receives \"(.+)\" in JSON format$")
     fun `the subscriber receives in JSON format`(message: String) {
         flow = flow.thenCompose {
             val pattern = """^\{"payload":"$message","timeStamp":\d+}$""".trimIndent().toRegex()
