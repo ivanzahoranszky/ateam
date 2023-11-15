@@ -5,10 +5,9 @@ import io.cucumber.core.logging.LoggerFactory
 import io.cucumber.java.en.And
 import io.cucumber.java.en.Given
 import io.cucumber.java.en.When
-import org.junit.Assert
+import org.junit.Assert.*
 import java.io.BufferedReader
 import java.io.InputStreamReader
-import java.io.PrintWriter
 import java.net.InetSocketAddress
 import java.net.Socket
 import java.util.concurrent.CompletableFuture
@@ -20,7 +19,7 @@ class StepDefinitions {
     private val actorSystem = ActorSystem.create()
 
     private var publisher = Socket()
-    private var subsciber = Socket()
+    private var subscriber = Socket()
 
     private var flow: CompletableFuture<Unit> = CompletableFuture.completedFuture(Unit)
 
@@ -31,18 +30,9 @@ class StepDefinitions {
 
     @When("^the publisher connects$")
     fun `the publisher connects`() {
-//        flow = flow.thenCompose {
-//            connect("PUBLISHER")
-//        }
-
-//        Thread.sleep(5000)
-//        val socket = Socket()
-//        socket.connect(InetSocketAddress("localhost", 8888))
-//        val ist = BufferedReader(InputStreamReader(socket.getInputStream()))
-//        val ost = OutputStreamWriter(socket.getOutputStream())
-//        ost.write("PUBLISHER\n")
-//        var line = ist.read()
-//        println()
+        flow = flow.thenCompose {
+            connect("PUBLISHER")
+        }
     }
 
     @When("^the subscriber connects$")
@@ -63,8 +53,8 @@ class StepDefinitions {
     @And("^the subscriber sends \"(.+)\"$")
     fun `the subscriber sends`(message: String) {
         flow = flow.thenApply {
-            subsciber.getOutputStream().write(message.toByteArray())
-            subsciber.getOutputStream().flush()
+            subscriber.getOutputStream().write(message.toByteArray())
+            subscriber.getOutputStream().flush()
         }
     }
 
@@ -81,6 +71,15 @@ class StepDefinitions {
         flow = flow.thenCompose {
             log.info { "Waiting for $message" }
             subscriberReads(message)
+        }
+    }
+
+    @And("^the subscriber receives \"(.+)\" in JSON format$")
+    fun `the subscriber receives in JSON format`(message: String) {
+        flow = flow.thenCompose {
+            val pattern = """^\{"payload":"$message","timeStamp":\d+}$""".trimIndent().toRegex()
+            log.info { "Waiting for $message" }
+            subscriberReads(message, pattern)
         }
     }
 
@@ -103,7 +102,7 @@ class StepDefinitions {
                     if("PUBLISHER" == clientType)
                         publisher = result.getOrNull()!!
                     else {
-                        subsciber = result.getOrNull()!!
+                        subscriber = result.getOrNull()!!
                     }
                     break
                 }
@@ -111,17 +110,21 @@ class StepDefinitions {
         }
     }
 
-    private fun subscriberReads(message: String): CompletableFuture<Unit> {
+    private fun subscriberReads(message: String, regex: Regex? = null): CompletableFuture<Unit> {
         return CompletableFuture.supplyAsync {
             var line: String? = null
             while (null == line) {
                 println("?= $message")
                 line = runCatching {
-                    BufferedReader(InputStreamReader(subsciber.getInputStream())).readLine()
+                    BufferedReader(InputStreamReader(subscriber.getInputStream())).readLine()
                 }.getOrNull()
                 Thread.sleep(1000)
             }
-            Assert.assertEquals(message, line)
+            if (null == regex) {
+                assertEquals(message, line)
+            } else {
+                assertTrue(regex.matches(line))
+            }
         }
     }
 
@@ -133,36 +136,8 @@ class StepDefinitions {
                     BufferedReader(InputStreamReader(publisher.getInputStream())).readLine()
                 }.getOrNull()
             }
-            Assert.assertEquals(message, line)
+            assertEquals(message, line)
         }
     }
 
-}
-
-fun main() {
-    val actorSystem = ActorSystem.create()
-    actorSystem.actorOf(ConnectionActor.props("localhost", 8888))
-    Thread {
-        Thread.sleep(5000)
-        val publisher = Socket()
-        publisher.connect(InetSocketAddress("localhost", 8888))
-        val istP = BufferedReader(InputStreamReader(publisher.getInputStream()))
-        val ostP = PrintWriter(publisher.getOutputStream())
-        ostP.println("PUBLISHER"); ostP.flush()
-        var lineP = istP.readLine()
-
-        val subscriber = Socket()
-        subscriber.connect(InetSocketAddress("localhost", 8888))
-        val istS = BufferedReader(InputStreamReader(subscriber.getInputStream()))
-        val ostS = PrintWriter(subscriber.getOutputStream())
-        ostS.println("SUBSCRIBER"); ostS.flush()
-        var lineS = istS.readLine()
-
-        ostP.println("Hello Brother"); ostP.flush()
-        lineS = istS.readLine()
-
-        println()
-    }.start()
-
-    Thread.currentThread().join()
 }
