@@ -1,11 +1,25 @@
 package ateam.demo
 
 import akka.actor.ActorSystem
+import akka.actor.Props
+import akka.stream.alpakka.slick.javadsl.SlickSession
 import ateam.demo.actor.ConnectionActor
 import ateam.demo.service.DbService
+import com.typesafe.config.Config
+import com.typesafe.config.ConfigFactory
+import com.zaxxer.hikari.pool.HikariProxyConnection
 import io.cucumber.core.logging.LoggerFactory
-import io.cucumber.java.en.*
-import org.junit.Assert.*
+import io.cucumber.java.en.And
+import io.cucumber.java.en.Given
+import io.cucumber.java.en.Then
+import io.cucumber.java.en.When
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
+import org.koin.core.context.startKoin
+import org.koin.dsl.module
+import org.mockito.Mockito.*
+import org.mockito.invocation.InvocationOnMock
+import slick.jdbc.JdbcBackend.DatabaseDef
 import java.io.BufferedReader
 import java.io.InputStreamReader
 import java.net.InetSocketAddress
@@ -25,7 +39,32 @@ class StepDefinitions {
 
     @Given("^the driver has been started")
     fun `the driver has been started`() {
-        actorSystem.actorOf(ConnectionActor.props("localhost", 8888, DbService(actorSystem)))
+        val mainModule = module {
+            single { ConfigFactory.load() }
+
+            // change dependency to be able to run without database
+            single {
+                val databaseDef = mock(DatabaseDef::class.java, withSettings().verboseLogging())
+                val session = mock(SlickSession::class.java)
+                `when`(session.db()).thenReturn(databaseDef)
+                session
+            }
+
+            single { ActorSystem.create("A_team_demo", get<Config>()) }
+            single(createdAtStart = true) {
+                val actorSystem = get<ActorSystem>()
+                actorSystem.actorOf(
+                    Props.create(
+                    ConnectionActor::class.java,
+                    actorSystem.settings().config().getString("demo.host"),
+                    actorSystem.settings().config().getInt("demo.port"),
+                    DbService(actorSystem, get())))
+            }
+        }
+
+        startKoin {
+            modules(mainModule)
+        }
     }
 
     @When("^the publisher connects$")
@@ -85,6 +124,7 @@ class StepDefinitions {
 
     @And("^end$")
     fun end() {
+        Thread.sleep(100000)
         flow.join()
         publisher.close()
         subscriber.close()

@@ -23,7 +23,7 @@ class ConnectionActor(
     companion object {
 
         private const val QUEUE_SIZE = 100
-        fun props(host: String, port: Int, dbService: DbService): Props = Props.create(ConnectionActor::class.java, host, port,dbService)
+        fun props(host: String, port: Int, dbService: DbService): Props = Props.create(ConnectionActor::class.java, host, port, dbService)
 
     }
 

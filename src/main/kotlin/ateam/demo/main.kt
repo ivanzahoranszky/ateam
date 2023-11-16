@@ -2,6 +2,7 @@ package ateam.demo
 
 import akka.actor.ActorSystem
 import akka.actor.Props
+import akka.stream.alpakka.slick.javadsl.SlickSession
 import ateam.demo.actor.ConnectionActor
 import ateam.demo.service.DbService
 import com.typesafe.config.Config
@@ -13,15 +14,15 @@ fun main() {
 
     val mainModule = module {
         single { ConfigFactory.load() }
+        single { SlickSession.forConfig("slick-postgres") }
         single { ActorSystem.create("A_team_demo", get<Config>()) }
-        single { DbService(get()) }
+        single { DbService(get(), get()) }
         single(createdAtStart = true) {
             val actorSystem = get<ActorSystem>()
-            actorSystem.actorOf(Props.create(
-                ConnectionActor::class.java,
+            actorSystem.actorOf(ConnectionActor.props(
                 actorSystem.settings().config().getString("demo.host"),
                 actorSystem.settings().config().getInt("demo.port"),
-                DbService(actorSystem)))
+                get()))
         }
     }
 
