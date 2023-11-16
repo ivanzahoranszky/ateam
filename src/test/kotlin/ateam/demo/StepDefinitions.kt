@@ -2,10 +2,7 @@ package ateam.demo
 
 import akka.actor.ActorSystem
 import io.cucumber.core.logging.LoggerFactory
-import io.cucumber.java.en.And
-import io.cucumber.java.en.Given
-import io.cucumber.java.en.Then
-import io.cucumber.java.en.When
+import io.cucumber.java.en.*
 import org.junit.Assert.*
 import java.io.BufferedReader
 import java.io.InputStreamReader
@@ -78,7 +75,7 @@ class StepDefinitions {
     @Then("^the subscriber receives \"(.+)\" in JSON format$")
     fun `the subscriber receives in JSON format`(message: String) {
         flow = flow.thenCompose {
-            val pattern = """^\{"payload":\{"key":"text","value":"$message"},"timeStamp":\d+\}$""".trimIndent().toRegex()
+            val pattern = """^\{"payload":\{"key":"text","value":"$message"},"timeStamp":\d+}$""".trimIndent().toRegex()
             log.info { "Waiting for $message" }
             subscriberReads(message, pattern)
         }
@@ -120,7 +117,7 @@ class StepDefinitions {
                 line = runCatching {
                     BufferedReader(InputStreamReader(subscriber.getInputStream())).readLine()
                 }.getOrNull()
-                Thread.sleep(1000)
+                Thread.sleep(100)
             }
             if (null == regex) {
                 assertEquals(message, line)
