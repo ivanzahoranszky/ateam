@@ -7,7 +7,6 @@ import ateam.demo.actor.ConnectionActor
 import ateam.demo.service.DbService
 import com.typesafe.config.Config
 import com.typesafe.config.ConfigFactory
-import com.zaxxer.hikari.pool.HikariProxyConnection
 import io.cucumber.core.logging.LoggerFactory
 import io.cucumber.java.en.And
 import io.cucumber.java.en.Given
@@ -18,7 +17,6 @@ import org.junit.Assert.assertTrue
 import org.koin.core.context.startKoin
 import org.koin.dsl.module
 import org.mockito.Mockito.*
-import org.mockito.invocation.InvocationOnMock
 import slick.jdbc.JdbcBackend.DatabaseDef
 import java.io.BufferedReader
 import java.io.InputStreamReader
@@ -124,7 +122,6 @@ class StepDefinitions {
 
     @And("^end$")
     fun end() {
-        Thread.sleep(100000)
         flow.join()
         publisher.close()
         subscriber.close()
