@@ -23,7 +23,7 @@ class StepDefinitions {
 
     @Given("^the driver has been started")
     fun `the driver has been started`() {
-        actorSystem.actorOf(ConnectionActor.props("localhost", 8888))
+        actorSystem.actorOf(ConnectionActor.props("localhost", 8888, DbService(actorSystem)))
     }
 
     @When("^the publisher connects$")
@@ -131,7 +131,7 @@ class StepDefinitions {
         return CompletableFuture.supplyAsync {
             var line: String? = null
             while (null == line) {
-                line =runCatching {
+                line = runCatching {
                     BufferedReader(InputStreamReader(publisher.getInputStream())).readLine()
                 }.getOrNull()
             }

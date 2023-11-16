@@ -10,12 +10,15 @@ import akka.util.ByteString
 import java.time.Instant
 import java.util.concurrent.CompletionStage
 
-class ConnectionActor(private val host: String, private val port: Int): AbstractActorWithStash() {
+class ConnectionActor(
+    private val host: String,
+    private val port: Int,
+    private val dbService: DbService): AbstractActorWithStash() {
 
     companion object {
 
         private const val QUEUE_SIZE = 100
-        fun props(host: String, port: Int): Props = Props.create(ConnectionActor::class.java, host, port)
+        fun props(host: String, port: Int, dbService: DbService): Props = Props.create(ConnectionActor::class.java, host, port,dbService)
 
     }
 
@@ -86,8 +89,9 @@ class ConnectionActor(private val host: String, private val port: Int): Abstract
             .filter { it.value.clientType == ClientType.SUBSCRIBER }
             .map { it.value }
             .forEach { record ->
-                val payload = Payload("text", data.utf8String())
+                val payload = Payload("text", data.utf8String().trim())
                 val message = Message(payload, Instant.now().toEpochMilli())
+                dbService.storeMessage(message)
                 record.queue.offer(ByteString.fromString(message.toJsonString()))
                 log.info("Message sent to ${record.connection.remoteAddress()} $message")
             }

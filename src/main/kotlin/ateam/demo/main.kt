@@ -12,9 +12,8 @@ fun main() {
 
     system.actorOf(Props.create(ConnectionActor::class.java,
         system.settings().config().getString("demo.host"),
-        system.settings().config().getInt("demo.port")
+        system.settings().config().getInt("demo.port"),
+        DbService(system)
     ))
-
-    DbService(system)
 
 }
