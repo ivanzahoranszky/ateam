@@ -5,5 +5,3 @@ create table messages
     payload   json                           not null,
     timestamp decimal                        not null
 );
-
-INSERT INTO messages (payload, timestamp) VALUES ('{"a":"b"}', 1234);
