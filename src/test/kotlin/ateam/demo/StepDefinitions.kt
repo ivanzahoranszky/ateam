@@ -117,7 +117,6 @@ class StepDefinitions {
         return CompletableFuture.supplyAsync {
             var line: String? = null
             while (null == line) {
-                println("?= $message")
                 line = runCatching {
                     BufferedReader(InputStreamReader(subscriber.getInputStream())).readLine()
                 }.getOrNull()
