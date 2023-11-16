@@ -20,6 +20,7 @@ dependencies {
     implementation("com.typesafe.akka:akka-stream_2.13:$akkaVersion")
     implementation("com.google.code.gson:gson:2.8.8")
     implementation("com.lightbend.akka:akka-stream-alpakka-slick_2.13:6.0.2")
+    implementation("io.insert-koin:koin-core:3.4.0")
     runtimeOnly("org.postgresql:postgresql:42.5.0")
 
     testImplementation("com.typesafe.akka:akka-testkit_2.13:$akkaVersion")

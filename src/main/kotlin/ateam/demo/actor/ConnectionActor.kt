@@ -1,4 +1,4 @@
-package ateam.demo
+package ateam.demo.actor
 
 import akka.Done
 import akka.actor.AbstractActorWithStash
@@ -7,13 +7,18 @@ import akka.stream.OverflowStrategy
 import akka.stream.javadsl.*
 import akka.stream.javadsl.Tcp.IncomingConnection
 import akka.util.ByteString
+import ateam.demo.service.DbService
+import ateam.demo.model.Message
+import ateam.demo.model.Payload
+import ateam.demo.model.toJsonString
 import java.time.Instant
 import java.util.concurrent.CompletionStage
 
 class ConnectionActor(
     private val host: String,
     private val port: Int,
-    private val dbService: DbService): AbstractActorWithStash() {
+    private val dbService: DbService
+): AbstractActorWithStash() {
 
     companion object {
 

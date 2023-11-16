@@ -1,6 +1,8 @@
 package ateam.demo
 
 import akka.actor.ActorSystem
+import ateam.demo.actor.ConnectionActor
+import ateam.demo.service.DbService
 import io.cucumber.core.logging.LoggerFactory
 import io.cucumber.java.en.*
 import org.junit.Assert.*
