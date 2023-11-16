@@ -78,7 +78,7 @@ class StepDefinitions {
     @Then("^the subscriber receives \"(.+)\" in JSON format$")
     fun `the subscriber receives in JSON format`(message: String) {
         flow = flow.thenCompose {
-            val pattern = """^\{"payload":"$message","timeStamp":\d+}$""".trimIndent().toRegex()
+            val pattern = """^\{"payload":\{"key":"text","value":"$message"},"timeStamp":\d+\}$""".trimIndent().toRegex()
             log.info { "Waiting for $message" }
             subscriberReads(message, pattern)
         }

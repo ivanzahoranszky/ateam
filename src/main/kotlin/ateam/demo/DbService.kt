@@ -3,8 +3,6 @@ package ateam.demo
 import akka.actor.ActorSystem
 import akka.stream.alpakka.slick.javadsl.*
 import akka.stream.javadsl.*
-import scala.PartialFunction
-import slick.ast.Library.User
 import java.sql.PreparedStatement
 import java.time.Instant
 
@@ -20,7 +18,7 @@ class DbService(private val actorSystem: ActorSystem) {
                  val statement: PreparedStatement = connection.prepareStatement(
                      "INSERT INTO messages (payload, timestamp) VALUES (?, ?)"
                  )
-                 statement.setObject(1, data.payload.toJosn())
+                 statement.setObject(1, data.payload.toJsonString())
                  statement.setLong(2, data.timeStamp)
                  statement
             }).run(actorSystem)

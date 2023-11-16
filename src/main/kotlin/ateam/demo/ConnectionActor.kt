@@ -86,8 +86,9 @@ class ConnectionActor(private val host: String, private val port: Int): Abstract
             .filter { it.value.clientType == ClientType.SUBSCRIBER }
             .map { it.value }
             .forEach { record ->
-                val message = Message(data.utf8String().trimEnd().toPayload(), Instant.now().toEpochMilli())
-                record.queue.offer(data.toPayload())
+                val payload = Payload("text", data.utf8String())
+                val message = Message(payload, Instant.now().toEpochMilli())
+                record.queue.offer(ByteString.fromString(message.toJsonString()))
                 log.info("Message sent to ${record.connection.remoteAddress()} $message")
             }
     }
