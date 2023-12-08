@@ -11,6 +11,7 @@ import iz.demo.service.DbService
 import iz.demo.model.Message
 import iz.demo.model.Payload
 import iz.demo.model.toJsonString
+import iz.demo.stream.KeepaliveMessage
 import java.time.Instant
 import java.util.concurrent.CompletionStage
 
@@ -103,6 +104,11 @@ class ConnectionActor(
     }
 
     private val runningState = receiveBuilder()
+        .match(KeepaliveMessage::class.java) { message ->
+            portMapping
+                .map { it.value.queue }
+                .map { it.offer(ByteString.fromString(message.keepAliveMessage)) }
+        }
         .build()
 
     private enum class ClientType {
