@@ -1,4 +1,4 @@
-package ateam.demo.model
+package iz.demo.model
 
 data class Message(val payload: Payload, val timeStamp: Long)
 

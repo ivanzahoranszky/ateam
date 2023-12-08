@@ -1,4 +1,4 @@
-package ateam.demo.actor
+package iz.demo.actor
 
 import akka.Done
 import akka.actor.AbstractActorWithStash
@@ -7,10 +7,10 @@ import akka.stream.OverflowStrategy
 import akka.stream.javadsl.*
 import akka.stream.javadsl.Tcp.IncomingConnection
 import akka.util.ByteString
-import ateam.demo.service.DbService
-import ateam.demo.model.Message
-import ateam.demo.model.Payload
-import ateam.demo.model.toJsonString
+import iz.demo.service.DbService
+import iz.demo.model.Message
+import iz.demo.model.Payload
+import iz.demo.model.toJsonString
 import java.time.Instant
 import java.util.concurrent.CompletionStage
 
@@ -97,7 +97,7 @@ class ConnectionActor(
                 val payload = Payload("text", data.utf8String().trim())
                 val message = Message(payload, Instant.now().toEpochMilli())
                 dbService.storeMessage(message)
-                record.queue.offer(ByteString.fromString(message.toJsonString()))
+                record.queue.offer(ByteString.fromString(message.payload.value + "\n"))
                 log.info("Message sent to ${record.connection.remoteAddress()} $message")
             }
     }

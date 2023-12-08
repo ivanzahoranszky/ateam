@@ -13,5 +13,5 @@ Feature: The driver receives "publisher" and "subscriber" connections. When one 
     And the subscriber sends "SUBSCRIBER"
     And the subscriber receives "Hello SUBSCRIBER"
     And the publisher sends "Good evening"
-    Then the subscriber receives "Good evening" in JSON format
+    Then the subscriber receives "Good evening"
     And end

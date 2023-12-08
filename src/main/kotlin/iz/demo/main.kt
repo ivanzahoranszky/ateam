@@ -1,10 +1,10 @@
-package ateam.demo
+package iz.demo
 
 import akka.actor.ActorSystem
 import akka.actor.Props
 import akka.stream.alpakka.slick.javadsl.SlickSession
-import ateam.demo.actor.ConnectionActor
-import ateam.demo.service.DbService
+import iz.demo.actor.ConnectionActor
+import iz.demo.service.DbService
 import com.typesafe.config.Config
 import com.typesafe.config.ConfigFactory
 import org.koin.core.context.startKoin
@@ -19,7 +19,8 @@ fun main() {
         single { DbService(get(), get()) }
         single(createdAtStart = true) {
             val actorSystem = get<ActorSystem>()
-            actorSystem.actorOf(ConnectionActor.props(
+            actorSystem.actorOf(
+                ConnectionActor.props(
                 actorSystem.settings().config().getString("demo.host"),
                 actorSystem.settings().config().getInt("demo.port"),
                 get()))

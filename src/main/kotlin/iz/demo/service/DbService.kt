@@ -1,11 +1,11 @@
-package ateam.demo.service
+package iz.demo.service
 
 import akka.actor.ActorSystem
 import akka.stream.alpakka.slick.javadsl.Slick
 import akka.stream.alpakka.slick.javadsl.SlickSession
 import akka.stream.javadsl.Source
-import ateam.demo.model.Message
-import ateam.demo.model.toJsonString
+import iz.demo.model.Message
+import iz.demo.model.toJsonString
 import java.sql.PreparedStatement
 import java.sql.Types
 

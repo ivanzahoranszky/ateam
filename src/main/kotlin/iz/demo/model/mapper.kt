@@ -1,4 +1,4 @@
-package ateam.demo.model
+package iz.demo.model
 
 import com.google.gson.Gson
 

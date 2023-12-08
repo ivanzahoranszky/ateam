@@ -1,10 +1,10 @@
-package ateam.demo
+package iz.demo
 
 import akka.actor.ActorSystem
 import akka.actor.Props
 import akka.stream.alpakka.slick.javadsl.SlickSession
-import ateam.demo.actor.ConnectionActor
-import ateam.demo.service.DbService
+import iz.demo.actor.ConnectionActor
+import iz.demo.service.DbService
 import com.typesafe.config.Config
 import com.typesafe.config.ConfigFactory
 import io.cucumber.core.logging.LoggerFactory
@@ -56,7 +56,8 @@ class StepDefinitions {
                     ConnectionActor::class.java,
                     actorSystem.settings().config().getString("demo.host"),
                     actorSystem.settings().config().getInt("demo.port"),
-                    DbService(actorSystem, get())))
+                    DbService(actorSystem, get())
+                    ))
             }
         }
 
@@ -108,15 +109,6 @@ class StepDefinitions {
         flow = flow.thenCompose {
             log.info { "Waiting for $message" }
             subscriberReads(message)
-        }
-    }
-
-    @Then("^the subscriber receives \"(.+)\" in JSON format$")
-    fun `the subscriber receives in JSON format`(message: String) {
-        flow = flow.thenCompose {
-            val pattern = """^\{"payload":\{"key":"text","value":"$message"},"timeStamp":\d+}$""".trimIndent().toRegex()
-            log.info { "Waiting for $message" }
-            subscriberReads(message, pattern)
         }
     }
 
