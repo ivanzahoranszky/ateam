@@ -4,6 +4,4 @@ import com.google.gson.Gson
 
 val gson = Gson()
 
-fun Message.toJsonString(): String = gson.toJson(this) + "\n"
-
-fun Payload.toJsonString(): String = gson.toJson(this)
+fun Message.toJsonString(): String = gson.toJson(this)

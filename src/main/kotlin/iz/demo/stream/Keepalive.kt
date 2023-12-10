@@ -15,7 +15,8 @@ class Keepalive(private val intervalInSec: Long, private val actorSystem: ActorS
     fun start() {
         keepAlive = Source.tick(Duration.ZERO, Duration.ofSeconds(intervalInSec), Unit)
             .wireTap {  }
-            .toMat(Sink.foreach { connectionActor.tell(KeepaliveMessage("__ping__\n"), ActorRef.noSender()) }, Keep.left())
+            .toMat(Sink.foreach {
+                actorSystem.eventStream().publish(KeepaliveMessage("__ping__\n")) }, Keep.left())
             .run(actorSystem)
     }
 

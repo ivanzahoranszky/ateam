@@ -12,9 +12,11 @@ import io.cucumber.java.en.And
 import io.cucumber.java.en.Given
 import io.cucumber.java.en.Then
 import io.cucumber.java.en.When
+import iz.demo.actor.DispatcherActor
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.koin.core.context.startKoin
+import org.koin.core.qualifier.named
 import org.koin.dsl.module
 import org.mockito.Mockito.*
 import slick.jdbc.JdbcBackend.DatabaseDef
@@ -47,17 +49,20 @@ class StepDefinitions {
                 `when`(session.db()).thenReturn(databaseDef)
                 session
             }
-
+            single { DbService(get(), get()) }
             single { ActorSystem.create("A_team_demo", get<Config>()) }
-            single(createdAtStart = true) {
+            single(named("ConnectionActor")) {
                 val actorSystem = get<ActorSystem>()
                 actorSystem.actorOf(
                     Props.create(
                     ConnectionActor::class.java,
                     actorSystem.settings().config().getString("demo.host"),
-                    actorSystem.settings().config().getInt("demo.port"),
-                    DbService(actorSystem, get())
+                    actorSystem.settings().config().getInt("demo.port")
                     ))
+            }
+            single(createdAtStart = true) {
+                get<ActorSystem>().actorOf(
+                    DispatcherActor.props(get(named("ConnectionActor")), get()))
             }
         }
 
@@ -114,7 +119,6 @@ class StepDefinitions {
 
     @And("^end$")
     fun end() {
-        flow.join()
         publisher.close()
         subscriber.close()
     }

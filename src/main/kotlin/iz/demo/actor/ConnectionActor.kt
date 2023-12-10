@@ -7,28 +7,23 @@ import akka.stream.OverflowStrategy
 import akka.stream.javadsl.*
 import akka.stream.javadsl.Tcp.IncomingConnection
 import akka.util.ByteString
-import iz.demo.service.DbService
-import iz.demo.model.Message
-import iz.demo.model.Payload
-import iz.demo.model.toJsonString
+import iz.demo.model.InboundMessage
+import iz.demo.model.OutboundMessage
 import iz.demo.stream.KeepaliveMessage
-import java.time.Instant
 import java.util.concurrent.CompletionStage
 
 class ConnectionActor(
     private val host: String,
-    private val port: Int,
-    private val dbService: DbService
+    private val port: Int
 ): AbstractActorWithStash() {
 
     companion object {
 
         private const val QUEUE_SIZE = 100
-        fun props(host: String, port: Int, dbService: DbService): Props = Props.create(ConnectionActor::class.java, host, port, dbService)
+
+        fun props(host: String, port: Int): Props = Props.create(ConnectionActor::class.java, host, port)
 
     }
-
-    private val log = context.system.log()
 
     private val portMapping = mutableMapOf<Int, ConnectionRec>()
 
@@ -36,6 +31,9 @@ class ConnectionActor(
 
     override fun preStart() {
         super.preStart()
+
+        context().system().eventStream().subscribe(self(), OutboundMessage::class.java)
+        context().system().eventStream().subscribe(self(), KeepaliveMessage::class.java)
 
         Tcp.get(context.system).bind(host, port)
             .to(Sink.foreach { connection ->
@@ -59,51 +57,26 @@ class ConnectionActor(
 
     private fun createSink(remotePort: Int): Sink<ByteString, CompletionStage<Done>> {
         val sink: Sink<ByteString, CompletionStage<Done>> = Sink.foreach { data ->
-            when {
-                data.utf8String().uppercase().startsWith(ClientType.PUBLISHER.toString()) -> registerPublisher(remotePort)
-                data.utf8String().uppercase().startsWith(ClientType.SUBSCRIBER.toString()) -> registerSubscriber(remotePort)
-                else -> sendMessageToSubscribers(remotePort, data)
-            }
+            context().system().eventStream().publish(InboundMessage(remotePort.toString(), data.utf8String()))
         }
         return sink
     }
 
     private fun registerConnection(remotePort: Int, connection: IncomingConnection, queue: SourceQueueWithComplete<ByteString>) {
         if (portMapping[remotePort] == null) {
-            portMapping[remotePort] = ConnectionRec(connection, null, queue)
+            portMapping[remotePort] = ConnectionRec(connection, queue)
         }
     }
 
-    private fun registerPublisher(remotePort: Int) {
-        portMapping[remotePort] = portMapping[remotePort]?.copy(clientType = ClientType.PUBLISHER) ?: throw RuntimeException("Connection not found")
-        portMapping[remotePort]?.queue?.offer(ByteString.fromString("Hello PUBLISHER\n"))
-        log.info("Publisher connected from $remotePort, Hello PUBLISHER sent")
-    }
-
-    private fun registerSubscriber(remotePort: Int) {
-        portMapping[remotePort] = portMapping[remotePort]?.copy(clientType = ClientType.SUBSCRIBER) ?: throw RuntimeException("Connection not found")
-        portMapping[remotePort]?.queue?.offer(ByteString.fromString("Hello SUBSCRIBER\n"))
-        log.info("Subscriber connected from $remotePort, Hello SUBSCRIBER sent")
-    }
-
-    private fun sendMessageToSubscribers(remotePort: Int, data: ByteString) {
-        val myClientType = portMapping[remotePort]?.clientType ?: throw RuntimeException("Connection not found")
-        if (myClientType == ClientType.SUBSCRIBER) { return }
-
-        portMapping
-            .map { log.info("${it.value.clientType}: ${it.value.connection.remoteAddress()}"); it }
-            .filter { it.value.clientType == ClientType.SUBSCRIBER }
-            .map { it.value }
-            .forEach { record ->
-                val payload = Payload("text", data.utf8String().trim())
-                val message = Message(payload, Instant.now().toEpochMilli())
-                dbService.storeMessage(message)
-                record.queue.offer(ByteString.fromString(message.payload.value + "\n"))
-                log.info("Message sent to ${record.connection.remoteAddress()} $message")
-            }
-    }
-
     private val runningState = receiveBuilder()
+        .match(OutboundMessage::class.java) { message ->
+            portMapping.filter { it.key.toString() == message.connectionId }
+                .map { it.value }
+                .firstOrNull()
+                ?.queue
+                ?.offer(ByteString.fromString(message.payload))
+                ?: context.system.log().error("Missing outbound tcp queue")
+        }
         .match(KeepaliveMessage::class.java) { message ->
             portMapping
                 .map { it.value.queue }
@@ -111,12 +84,8 @@ class ConnectionActor(
         }
         .build()
 
-    private enum class ClientType {
-        PUBLISHER,
-        SUBSCRIBER
-    }
+    private data class ConnectionRec(val connection: IncomingConnection, val queue: SourceQueueWithComplete<ByteString>)
 
-    private data class ConnectionRec(val connection: IncomingConnection, var clientType: ClientType?, val queue: SourceQueueWithComplete<ByteString>)
 
 }
 

@@ -8,6 +8,7 @@ import iz.demo.model.Message
 import iz.demo.model.toJsonString
 import java.sql.PreparedStatement
 import java.sql.Types
+import java.time.Instant
 
 
 class DbService(private val actorSystem: ActorSystem, private val session: SlickSession) {
@@ -18,8 +19,8 @@ class DbService(private val actorSystem: ActorSystem, private val session: Slick
                 val statement: PreparedStatement = connection.prepareStatement(
                     "INSERT INTO messages (payload, timestamp) VALUES (?, ?)"
                 )
-                statement.setObject(1, data.payload.toJsonString(), Types.OTHER)
-                statement.setLong(2, data.timeStamp)
+                statement.setObject(1, data.toJsonString(), Types.OTHER)
+                statement.setLong(2, Instant.now().toEpochMilli())
                 statement
             }).run(actorSystem)
     }
